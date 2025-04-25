@@ -61,6 +61,32 @@ instead of the one in `src/bogus_main.c`.
 
 When we test your code, we will provide our own `main` implementation.
 
+## Automated tests
+
+Run `make test` to build and run libcheck tests.
+
+To add a test case, create one and add it to the test suite in `tests/check_accounts.c`.
+You can do this with the macros from the `check` library:
+
+```
+START_TEST (your_test_name) {
+    // your test code here...
+}
+END_TEST
+```
+
+Then add it to the test suite:
+
+```
+Suite *account_suite(void) {
+    ...
+    tcase_add_test(tc_core, your_test_name);
+    ...
+}
+```
+
+For more information, see the [libcheck docs](https://libcheck.github.io/check/doc/check_html/check_3.html).
+
 ## Installing and configuring libraries
 
 You will almost certainly need to make use of external libraries to complete the project.

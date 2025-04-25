@@ -12,6 +12,7 @@ CC = gcc
 SRC_DIR := src
 BUILD_DIR := build
 BIN_DIR := bin
+TEST_DIR = tests
 
 # The target executable.
 # This executable is created by linking together all object files
@@ -24,6 +25,8 @@ BIN_DIR := bin
 TARGET = $(BIN_DIR)/app
 
 SRC_FILES := $(shell find $(SRC_DIR) -name "*.c")
+TEST_FILES := $(shell find $(TEST_DIR) -name "*.c")
+TEST_SRC_FILES := $(filter-out %_main.c, $(SRC_FILES))
 
 OBJ_FILES := $(SRC_FILES:.c=.o)
 OBJ_FILES := $(subst $(SRC_DIR),$(BUILD_DIR),$(OBJ_FILES))
@@ -50,6 +53,8 @@ DEBUG = -g -fno-omit-frame-pointer
 CFLAGS = $(DEBUG) -std=c11 -pedantic-errors -Wall -Wextra $(INC_FLAGS) $(PKG_CFLAGS)
 LDFLAGS = $(PKG_LDFLAGS)
 
+TEST_TARGET = $(BIN_DIR)/run_tests
+
 ###
 # Targets
 
@@ -74,8 +79,16 @@ $(foreach obj_file,$(OBJ_FILES),$(eval $(obj_file):))
 install-dependencies:
 	cat apt-packages.txt | sudo ./scripts/install-deps.sh
 
+test: $(TEST_TARGET)
+	./$(TEST_TARGET)
+
+$(TEST_TARGET): $(TEST_FILES) $(TEST_SRC_FILES)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET)
+	rm -f $(TEST_TARGET)
 
 .PHONY: all clean
 
