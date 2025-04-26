@@ -1,15 +1,9 @@
 #include "account.h"
 #include "logging.h"
+#include "password.h"
 #include <crypt.h>
 #include <string.h>
 #include <assert.h>
-
-// Somewhat arbitrary values for crypt_gensalt's "count" value
-// Would've included them in the header, but it will be reset on submission.
-#define HASH_COUNT_YESCRYPT 9       // 1..11, logarithmic
-#define HASH_COUNT_SCRYPT 10        // 6..11, logarithmic
-#define HASH_COUNT_BCRYPT 12        // 4..31, logarithmic
-#define HASH_COUNT_SHA512 1000000   // 1000..999,999,999
 
 /**
  * Create a new account with the specified parameters.
@@ -45,50 +39,6 @@ bool account_validate_password(const account_t *acc, const char *plaintext_passw
   // remove the contents of this function and replace it with your own code.
   (void) acc;
   (void) plaintext_password;
-  return false;
-}
-
-/**
- * Tries to call crypt_gensalt() and crypt_r() with some known hash algorithms.
- * If none of the known algorithms work, allows libcrypt to choose an algorithm
- * (and a "low default cost" value for "count").
- * Ensures that the hash outputted has length < max_hash_length, otherwise fails.
- * On success, hash will be available in data->output. (On failure, the values
- * in `data` are undefined).
- * Returns true on success, false on failure.
- */
-bool _get_hash(struct crypt_data *data, size_t max_hash_length) {
-  // TODO: provide a fallback option
-  static_assert(CRYPT_GENSALT_IMPLEMENTS_AUTO_ENTROPY,
-    "libcrypt 4.0.0 or newer is required. (Make sure you're in the CITS3007 SDE "
-    "and have installed the packages in `apt-packages.txt`)."
-  );
-
-  char *out;
-  char *hash;
-
-  // locally scoped macro to reduce code repetition
-#define TRY_HASH(prefix, count) do { \
-  out = crypt_gensalt_rn(prefix, count, NULL, 0, data->setting, sizeof data->setting); \
-  if (out != NULL && out[0] != '*') { \
-    hash = crypt_r(data->input, data->setting, data); \
-    if (hash != NULL && data->output[0] != '*' && strlen(data->output) < max_hash_length) { \
-      return true; \
-    } \
-  } \
-} while (0)
-
-  TRY_HASH("$y$", HASH_COUNT_YESCRYPT); // should be 73 chars
-  TRY_HASH("$7$", HASH_COUNT_SCRYPT);   // should be 80 chars
-  TRY_HASH("$2b$", HASH_COUNT_BCRYPT);  // should be 60 chars
-  TRY_HASH("$6$", HASH_COUNT_SHA512);   // should be <=123 chars
-
-#if CRYPT_GENSALT_IMPLEMENTS_DEFAULT_PREFIX
-  TRY_HASH(NULL, 0); // will select a "low default cost"
-#endif
-
-#undef TRY_HASH
-
   return false;
 }
 
