@@ -1,4 +1,9 @@
 #include "account.h"
+#include "logging.h"
+#include "password.h"
+#include <crypt.h>
+#include <string.h>
+#include <assert.h>
 
 /**
  * Create a new account with the specified parameters.
@@ -31,17 +36,32 @@ void account_free(account_t *acc) {
 
 
 bool account_validate_password(const account_t *acc, const char *plaintext_password) {
-  // remove the contents of this function and replace it with your own code.
-  (void) acc;
-  (void) plaintext_password;
-  return false;
+  struct crypt_data data = {0};
+
+  static_assert(sizeof acc->password_hash <= sizeof data.setting, "Password hash is too big to be processed by libcrypt.");
+  memcpy(data.setting, acc->password_hash, sizeof acc->password_hash);
+  strncpy(data.input, plaintext_password, sizeof data.input);
+
+  char *out_hash = crypt_r(data.input, data.setting, &data);
+  if (out_hash == NULL) return false;
+
+  return strncmp(out_hash, acc->password_hash, sizeof acc->password_hash) == 0;
 }
 
 bool account_update_password(account_t *acc, const char *new_plaintext_password) {
-  // remove the contents of this function and replace it with your own code.
-  (void) acc;
-  (void) new_plaintext_password;
-  return false;
+  struct crypt_data data = {0};
+  strncpy(data.input, new_plaintext_password, CRYPT_MAX_PASSPHRASE_SIZE);
+
+  bool success = _get_hash(&data, HASH_LENGTH);
+  if (!success) {
+    log_message(LOG_ERROR, "Couldn't hash a password.");
+    return false;
+  }
+
+  // _get_hash() guarantees that strlen(data.output) < HASH_LENGTH
+  memcpy(acc->password_hash, data.output, HASH_LENGTH);
+
+  return true;
 }
 
 void account_record_login_success(account_t *acc, ip4_addr_t ip) {
