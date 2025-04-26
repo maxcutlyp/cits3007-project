@@ -11,7 +11,7 @@ START_TEST (test_password_hash) {
 END_TEST
 
 Suite *account_suite(void) {
-    Suite *s = suite_create("Password");
+    Suite *s = suite_create("Accounts");
 
     TCase *tc_core = tcase_create("Core");
 
