@@ -21,6 +21,16 @@ START_TEST (test_password_length) {
 }
 END_TEST
 
+START_TEST (test_password_validation) {
+    account_t *acc = malloc(sizeof(account_t));
+    bool res = account_update_password(acc, "test password");
+    ck_assert_int_eq(res, true);
+
+    ck_assert_int_eq(account_validate_password(acc, "test password"), true);
+    ck_assert_int_eq(account_validate_password(acc, "different password"), false);
+}
+END_TEST
+
 Suite *account_suite(void) {
     Suite *s = suite_create("Accounts");
 
@@ -28,6 +38,8 @@ Suite *account_suite(void) {
 
     tcase_add_test(tc_core, test_password_success);
     tcase_add_test(tc_core, test_password_length);
+    tcase_add_test(tc_core, test_password_validation);
+
     suite_add_tcase(s, tc_core);
 
     return s;
