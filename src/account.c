@@ -19,19 +19,56 @@ account_t *account_create(const char *userid, const char *plaintext_password,
                           const char *email, const char *birthdate
                       )
 {
-  // remove the contents of this function and replace it with your own code.
-  (void) userid;
-  (void) plaintext_password;
-  (void) email;
-  (void) birthdate;
 
-  return NULL;
+  if (!userid || !plaintext_password || !email || !birthdate) {
+      log_message(LOG_ERROR, "account_create: One or more input parameters are NULL.");
+      return NULL;
+    }
+
+    account_t *acc = malloc(sizeof(account_t));
+    if (!acc) {
+        log_message(LOG_ERROR, "account_create: Failed to allocate memory for account.");
+        return NULL;
+    }
+
+    memset(acc, 0, sizeof(account_t));
+
+    strncpy(acc->userid, userid, sizeof(acc->userid) - 1);
+    acc->userid[sizeof(acc->userid) - 1] = '\0';
+
+    strncpy(acc->email, email, sizeof(acc->email) - 1);
+    acc->email[sizeof(acc->email) - 1] = '\0';
+
+    strncpy(acc->birthdate, birthdate, sizeof(acc->birthdate) - 1);
+    acc->birthdate[sizeof(acc->birthdate) - 1] = '\0';
+
+    struct crypt_data data = {0};
+    strncpy(data.input, plaintext_password, CRYPT_MAX_PASSPHRASE_SIZE);
+
+    if (!_get_hash(&data, HASH_LENGTH)) {
+        log_message(LOG_ERROR, "account_create: Failed to hash password.");
+        free(acc);
+        return NULL;
+    }
+
+    memcpy(acc->password_hash, data.output, HASH_LENGTH);
+
+    // Set default values
+    acc->login_failures = 0;
+    acc->expiration_time = 0;
+    acc->unban_time = 0;
+
+    return acc;
+
 }
 
 
 void account_free(account_t *acc) {
   // remove the contents of this function and replace it with your own code.
-  (void) acc;
+    if (!acc) return;
+
+    memset(acc, 0, sizeof(account_t));
+    free(acc);
 }
 
 
