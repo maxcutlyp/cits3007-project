@@ -4,6 +4,7 @@
 #include <crypt.h>
 #include <string.h>
 #include <assert.h>
+#include <stdlib.h>
 
 /**
  * Create a new account with the specified parameters.
@@ -16,50 +17,52 @@
  * On error, returns NULL and logs an error message.
  */
 account_t *account_create(const char *userid, const char *plaintext_password,
-                          const char *email, const char *birthdate
-                      )
+                         const char *email, const char *birthdate)
 {
-
-  if (!userid || !plaintext_password || !email || !birthdate) {
-      log_message(LOG_ERROR, "account_create: One or more input parameters are NULL.");
-      return NULL;
+    if (!userid || !plaintext_password || !email || !birthdate) {
+        log_message(LOG_ERROR, "account_create: One or more input parameters are NULL.");
+        return NULL;
     }
-
+    
+    // Check input lengths - make sure birthdate has at least BIRTHDATE_LENGTH chars
+    if (strlen(userid) >= USER_ID_LENGTH ||
+        strlen(email) >= EMAIL_LENGTH ||
+        strlen(birthdate) < BIRTHDATE_LENGTH) {
+        log_message(LOG_ERROR, "account_create: One or more input parameters have invalid length.");
+        return NULL;
+    }
+    
     account_t *acc = malloc(sizeof(account_t));
     if (!acc) {
         log_message(LOG_ERROR, "account_create: Failed to allocate memory for account.");
         return NULL;
     }
-
     memset(acc, 0, sizeof(account_t));
-
+    
+    // Copy user ID and email with null termination
     strncpy(acc->userid, userid, sizeof(acc->userid) - 1);
     acc->userid[sizeof(acc->userid) - 1] = '\0';
-
     strncpy(acc->email, email, sizeof(acc->email) - 1);
     acc->email[sizeof(acc->email) - 1] = '\0';
-
-    strncpy(acc->birthdate, birthdate, sizeof(acc->birthdate) - 1);
-    acc->birthdate[sizeof(acc->birthdate) - 1] = '\0';
-
+    
+    // Copy exactly BIRTHDATE_LENGTH characters from birthdate
+    // This will handle the case if birthdate has extra characters like \n
+    memcpy(acc->birthdate, birthdate, BIRTHDATE_LENGTH);
+    
     struct crypt_data data = {0};
     strncpy(data.input, plaintext_password, CRYPT_MAX_PASSPHRASE_SIZE);
-
     if (!_get_hash(&data, HASH_LENGTH)) {
         log_message(LOG_ERROR, "account_create: Failed to hash password.");
         free(acc);
         return NULL;
     }
-
     memcpy(acc->password_hash, data.output, HASH_LENGTH);
-
+    
     // Set default values
-    acc->login_failures = 0;
+    acc->login_fail_count = 0;
     acc->expiration_time = 0;
     acc->unban_time = 0;
-
     return acc;
-
 }
 
 
