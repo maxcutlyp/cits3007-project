@@ -6,9 +6,9 @@
 #define PASSWORD_H
 
 // Somewhat arbitrary values for crypt_gensalt's "count" value
-#define HASH_COUNT_YESCRYPT 9       // 1..11, logarithmic
-#define HASH_COUNT_SCRYPT 10        // 6..11, logarithmic
-#define HASH_COUNT_BCRYPT 12        // 4..31, logarithmic
+#define HASH_COUNT_YESCRYPT 7       // 1..11, logarithmic
+#define HASH_COUNT_SCRYPT 8     // 6..11, logarithmic
+#define HASH_COUNT_BCRYPT 11        // 4..31, logarithmic
 #define HASH_COUNT_SHA512 1000000   // 1000..999,999,999
 
 /**
