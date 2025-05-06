@@ -6,10 +6,10 @@
 #define PASSWORD_H
 
 // Somewhat arbitrary values for crypt_gensalt's "count" value
-#define HASH_COUNT_YESCRYPT 9       // 1..11, logarithmic
-#define HASH_COUNT_SCRYPT 10        // 6..11, logarithmic
-#define HASH_COUNT_BCRYPT 12        // 4..31, logarithmic
-#define HASH_COUNT_SHA512 1000000   // 1000..999,999,999
+#define HASH_COUNT_YESCRYPT 4       // 1..11, logarithmic
+#define HASH_COUNT_SCRYPT 6      // 6..11, logarithmic
+#define HASH_COUNT_BCRYPT 4        // 4..31, logarithmic
+#define HASH_COUNT_SHA512 1000   // 1000..999,999,999
 
 /**
  * Used by account_update_password() to generate a hash.
