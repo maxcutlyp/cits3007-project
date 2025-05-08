@@ -33,7 +33,7 @@ END_TEST
 
 START_TEST(test_account_create_success) {
     account_t *acc = account_create("user123", "securepass", "user@example.com", "1990-01-01");
-    ck_assert_ptr_nonnull(acc);
+    ck_assert_ptr_ne(acc, NULL);
     ck_assert_str_eq(acc->userid, "user123");
     ck_assert_str_eq(acc->email, "user@example.com");
     ck_assert_int_eq(memcmp(acc->birthdate, "1990-01-01", BIRTHDATE_LENGTH), 0);
@@ -44,10 +44,10 @@ START_TEST(test_account_create_success) {
 END_TEST
 
 START_TEST(test_account_create_null_inputs) {
-    ck_assert_ptr_null(account_create(NULL, "pass", "email", "dob"));
-    ck_assert_ptr_null(account_create("user", NULL, "email", "dob"));
-    ck_assert_ptr_null(account_create("user", "pass", NULL, "dob"));
-    ck_assert_ptr_null(account_create("user", "pass", "email", NULL));
+    ck_assert_ptr_eq(account_create(NULL, "pass", "email", "dob"), NULL);
+    ck_assert_ptr_eq(account_create("user", NULL, "email", "dob"), NULL);
+    ck_assert_ptr_eq(account_create("user", "pass", NULL, "dob"), NULL);
+    ck_assert_ptr_eq(account_create("user", "pass", "email", NULL), NULL);
 }
 END_TEST
 
@@ -61,8 +61,8 @@ START_TEST(test_account_create_long_inputs) {
     long_email[sizeof(long_email) - 1] = '\0';
 
     // Should fail due to input length
-    ck_assert_ptr_null(account_create(long_userid, "pass", "email", "dob"));
-    ck_assert_ptr_null(account_create("user", "pass", long_email, "dob"));
+    ck_assert_ptr_eq(account_create(long_userid, "pass", "email", "dob"), NULL);
+    ck_assert_ptr_eq(account_create("user", "pass", long_email, "dob"), NULL);
 }
 END_TEST
 
@@ -71,6 +71,49 @@ START_TEST(test_account_free_null) {
     account_free(NULL);
 }
 END_TEST
+
+START_TEST(test_set_email_valid) {
+    account_t acc = {0};
+    account_set_email(&acc, "user@uwa.edu.au");
+    ck_assert_str_eq(acc.email, "user@uwa.edu.au");
+}
+END_TEST
+
+START_TEST(test_set_unban_time) {
+    account_t acc = {0};
+    time_t now = time(NULL);
+    account_set_unban_time(&acc, now + 3600);
+    ck_assert_int_eq(acc.unban_time, now + 3600);
+}
+END_TEST
+
+START_TEST(test_set_expiration_time) {
+    account_t acc = {0};
+    time_t now = time(NULL);
+    account_set_expiration_time(&acc, now + 86400);
+    ck_assert_int_eq(acc.expiration_time, now + 86400);
+}
+END_TEST
+
+START_TEST(test_print_summary) {
+    time_t now = time(NULL);
+    account_t acc = {
+        .userid = "user",
+        .email = "user@uwa.edu.au",
+        .login_count = 3,
+        .login_fail_count = 1,
+        .last_login_time = time(NULL),
+        .last_ip = 0x7F000001, // 127.0.0.1
+        .unban_time = now + 3600,        // add 1 hr
+        .expiration_time = now + 86400   // add 1 day
+    };
+
+    // Print to stdout (file descriptor 1)
+    bool result = account_print_summary(&acc, 1);
+    ck_assert(result);  // Ensure it didn't fail
+}
+END_TEST
+
 
 Suite *account_suite(void) {
     Suite *s = suite_create("Accounts");
@@ -85,6 +128,11 @@ Suite *account_suite(void) {
     tcase_add_test(tc_core, test_account_create_null_inputs);
     tcase_add_test(tc_core, test_account_create_long_inputs);
     tcase_add_test(tc_core, test_account_free_null);
+
+    tcase_add_test(tc_core, test_print_summary);
+    tcase_add_test(tc_core, test_set_email_valid);
+    tcase_add_test(tc_core, test_set_unban_time);
+    tcase_add_test(tc_core, test_set_expiration_time);
 
     suite_add_tcase(s, tc_core);
 
