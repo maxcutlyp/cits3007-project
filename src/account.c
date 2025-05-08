@@ -5,6 +5,12 @@
 #include <string.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <time.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <ctype.h>
+
 
 /**
  * Create a new account with the specified parameters.
@@ -126,27 +132,79 @@ bool account_is_expired(const account_t *acc) {
 }
 
 void account_set_unban_time(account_t *acc, time_t t) {
-  // remove the contents of this function and replace it with your own code.
-  (void) acc;
-  (void) t;
+  if (acc == NULL) {
+    return;
+  }
+  acc->unban_time = t;
 }
 
 void account_set_expiration_time(account_t *acc, time_t t) {
-  // remove the contents of this function and replace it with your own code.
-  (void) acc;
-  (void) t;
+  if (acc == NULL) {
+    return;
+  }
+  acc->expiration_time = t;
 }
 
 void account_set_email(account_t *acc, const char *new_email) {
-  // remove the contents of this function and replace it with your own code.
-  (void) acc;
-  (void) new_email;
+  if (acc == NULL || new_email == NULL) { // check for null pointers
+    return;
+  }
+
+  for (const char *p = new_email; *p; p++) {
+      if (!isprint((unsigned char)*p) || *p == ' ') { // check for printable characters and spaces
+          log_message(LOG_ERROR, "Invalid email address."); 
+          return;
+      }
+  }
+
+  strncpy(acc->email, new_email, EMAIL_LENGTH - 1);
+  acc->email[EMAIL_LENGTH - 1] = '\0'; 
 }
 
 bool account_print_summary(const account_t *acct, int fd) {
-  // remove the contents of this function and replace it with your own code.
-  (void) acct;
-  (void) fd;
-  return false;
-}
+  if (acct == NULL || fd < 0) {
+    return false; // ensures we aren't working with a null pointer or invalid fd
+  }
 
+  char buffer[512];
+  int len = 0;
+
+  char login_time_str[26];
+  char unban_time_str[26];
+  char expire_time_str[26];
+
+  strncpy(login_time_str, ctime(&acct->last_login_time), sizeof(login_time_str));
+  strncpy(unban_time_str, ctime(&acct->unban_time), sizeof(unban_time_str));
+  strncpy(expire_time_str, ctime(&acct->expiration_time), sizeof(expire_time_str));
+
+  login_time_str[sizeof(login_time_str) - 1] = '\0';
+  unban_time_str[sizeof(unban_time_str) - 1] = '\0';
+  expire_time_str[sizeof(expire_time_str) - 1] = '\0';
+
+  len = snprintf(buffer, sizeof(buffer), // prints out the summary of the account
+      "User ID: %s\n"
+      "Email: %s\n"
+      "Login Count: %u\n"
+      "Login Fail Count: %u\n"
+      "Last Login Time: %s"
+      "Last IP: %u.%u.%u.%u\n"
+      "Unban Time: %s"
+      "Expiration Time: %s",
+      acct->userid,
+      acct->email,
+      acct->login_count,
+      acct->login_fail_count,
+      login_time_str,
+      (acct->last_ip >> 24) & 0xFF,
+      (acct->last_ip >> 16) & 0xFF,
+      (acct->last_ip >> 8) & 0xFF,
+      acct->last_ip & 0xFF,
+      unban_time_str,
+      expire_time_str
+  );
+
+  if (len < 0) {
+    return false;
+  }
+  return write(fd, buffer, len) == len;
+}
