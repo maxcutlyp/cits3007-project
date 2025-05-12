@@ -18,3 +18,5 @@ XXX/
 *.~[0-9]~
 *.zip
 .DS_Store
+fuzz-outputs/*
+!fuzz-outputs/fuzzer-output-will-go-here
