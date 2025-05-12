@@ -109,26 +109,59 @@ bool account_update_password(account_t *acc, const char *new_plaintext_password)
 }
 
 void account_record_login_success(account_t *acc, ip4_addr_t ip) {
-  // remove the contents of this function and replace it with your own code.
-  (void) acc;
-  (void) ip;
+    if (acc == NULL) {
+        log_message(LOG_WARNING, "Tried to record login success on a NULL account.");
+        return;
+    }
+    acc->login_fail_count = 0;               
+    acc->last_login_time = time(NULL);       
+    acc->last_login_ip = ip;                 
 }
 
-void account_record_login_failure(account_t *acc) {
-  // remove the contents of this function and replace it with your own code.
-  (void) acc;
+void account_record_login_failure(account_t *acc, ip4_addr_t ip) {
+    if (acc == NULL) {
+        log_message(LOG_WARNING, "Tried to record login failure on a NULL account.");
+        return;
+    }
+    acc->login_fail_count++;                
+    acc->login_count = 0;                    
+    acc->last_login_time = time(NULL);       
+    acc->last_login_ip = ip;                 
 }
 
 bool account_is_banned(const account_t *acc) {
-  // remove the contents of this function and replace it with your own code.
-  (void) acc;
-  return false;
+    if (acc == NULL) {
+      log_message(LOG_WARNING, "Tried to check ban status on a NULL account.");
+      return false;
+    }
+    time_t now = time(NULL);
+    if (now == (time_t)-1) {
+      log_message(LOG_ERROR, "Failed to get current time in account_is_banned");
+      return false;
+    }
+    time_t unban = acc->unban_time;
+    if(unban > now)  {
+      return true;
+    }
+    return false;
 }
 
+
 bool account_is_expired(const account_t *acc) {
-  // remove the contents of this function and replace it with your own code.
-  (void) acc;
-  return false;
+    if (acc == NULL) {
+        log_message(LOG_WARNING, "Tried to check expiration on a NULL account.");
+        return false;
+    }
+    time_t now = time(NULL);
+    if (now == (time_t)-1) {
+        log_message(LOG_ERROR, "Failed to get current time in account_is_expired.");
+        return false;
+    }
+    time_t expired = acc->expiration_time;
+    if(expired == 0) {
+      return false;
+    }
+    return now > expired;
 }
 
 void account_set_unban_time(account_t *acc, time_t t) {
