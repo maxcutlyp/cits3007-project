@@ -114,25 +114,113 @@ START_TEST(test_print_summary) {
 }
 END_TEST
 
+//this is james tests
+
+
+START_TEST(test_record_login_success_updates_fields) {
+    account_t acc = {0};
+    acc.login_fail_count = 5;
+    acc.login_count = 10;
+    acc.last_login_time = 0;
+    acc.last_ip = 0;
+
+    time_t before = time(NULL);
+    ip4_addr_t dummy_ip = 0x01020304;
+    account_record_login_success(&acc, dummy_ip);
+    time_t after = time(NULL);
+
+    ck_assert_int_eq(acc.login_fail_count, 0);
+    ck_assert_int_ge(acc.last_login_time, before);
+    ck_assert_int_le(acc.last_login_time, after);
+    ck_assert_int_eq(acc.last_ip, dummy_ip);
+}
+END_TEST
+
+START_TEST(test_record_login_failure_updates_fields) {
+    account_t acc = {0};
+    acc.login_fail_count = 2;
+    acc.login_count = 8;
+    acc.last_login_time = 0;
+
+    time_t before = time(NULL);
+    account_record_login_failure(&acc);
+    time_t after = time(NULL);
+
+   
+    ck_assert_int_eq(acc.login_fail_count, 3);
+ 
+    ck_assert_int_eq(acc.login_count, 0);
+
+    ck_assert_int_ge(acc.last_login_time, before);
+    ck_assert_int_le(acc.last_login_time, after);
+}
+END_TEST
+
+START_TEST(test_account_is_banned_true_and_false) {
+    account_t acc = {0};
+    time_t now = time(NULL);
+
+    
+    acc.unban_time = now + 10;
+    ck_assert_int_eq(account_is_banned(&acc), true);
+
+    acc.unban_time = now - 10;
+    ck_assert_int_eq(account_is_banned(&acc), false);
+}
+END_TEST
+
+START_TEST(test_account_is_banned_null) {
+    ck_assert_int_eq(account_is_banned(NULL), false);
+}
+END_TEST
+
+START_TEST(test_account_is_expired_various) {
+    account_t acc = {0};
+    time_t now = time(NULL);
+
+  
+    acc.expiration_time = 0;
+    ck_assert_int_eq(account_is_expired(&acc), false);
+
+    
+    acc.expiration_time = now + 100;
+    ck_assert_int_eq(account_is_expired(&acc), false);
+
+    acc.expiration_time = now - 100;
+    ck_assert_int_eq(account_is_expired(&acc), true);
+}
+END_TEST
+
+START_TEST(test_account_is_expired_null) {
+    ck_assert_int_eq(account_is_expired(NULL), false);
+}
+END_TEST
 
 Suite *account_suite(void) {
     Suite *s = suite_create("Accounts");
 
     TCase *tc_core = tcase_create("Core");
 
+   
     tcase_add_test(tc_core, test_password_success);
     tcase_add_test(tc_core, test_password_length);
     tcase_add_test(tc_core, test_password_validation);
-
     tcase_add_test(tc_core, test_account_create_success);
     tcase_add_test(tc_core, test_account_create_null_inputs);
     tcase_add_test(tc_core, test_account_create_long_inputs);
     tcase_add_test(tc_core, test_account_free_null);
-
     tcase_add_test(tc_core, test_print_summary);
     tcase_add_test(tc_core, test_set_email_valid);
     tcase_add_test(tc_core, test_set_unban_time);
     tcase_add_test(tc_core, test_set_expiration_time);
+
+
+    tcase_add_test(tc_core, test_record_login_success_updates_fields);
+    tcase_add_test(tc_core, test_record_login_failure_updates_fields);
+    tcase_add_test(tc_core, test_account_is_banned_true_and_false);
+    tcase_add_test(tc_core, test_account_is_banned_null);
+    tcase_add_test(tc_core, test_account_is_expired_various);
+    tcase_add_test(tc_core, test_account_is_expired_null);
 
     suite_add_tcase(s, tc_core);
 
