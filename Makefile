@@ -51,7 +51,7 @@ PKG_LDFLAGS := $(if $(strip $(PKG_DEPS)),$(shell pkg-config --libs $(PKG_DEPS)))
 # This is helpful when testing your code locally, even though we will
 # not necessarily use the same flags when testing your code.
 DEBUG = -g -fno-omit-frame-pointer
-CFLAGS = $(DEBUG) -std=c11 -pedantic-errors -Wall -Wextra $(INC_FLAGS) $(PKG_CFLAGS)
+CFLAGS = $(DEBUG) -std=c11 -pedantic-errors -Wall -Wextra $(INC_FLAGS) $(PKG_CFLAGS) -fsanitize=undefined,address
 LDFLAGS = $(PKG_LDFLAGS)
 
 TEST_TARGET = $(BIN_DIR)/run_tests
