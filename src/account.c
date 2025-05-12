@@ -12,6 +12,7 @@
 #include <ctype.h>
 
 
+
 /**
  * Create a new account with the specified parameters.
  *
@@ -110,7 +111,7 @@ bool account_update_password(account_t *acc, const char *new_plaintext_password)
 
 void account_record_login_success(account_t *acc, ip4_addr_t ip) {
     if (acc == NULL) {
-        log_message(LOG_WARNING, "Tried to record login success on a NULL account.");
+        log_message(LOG_ERROR, "Tried to record login success on a NULL account.");
         return;
     }
     acc->login_fail_count = 0;               
@@ -118,20 +119,20 @@ void account_record_login_success(account_t *acc, ip4_addr_t ip) {
     acc->last_login_ip = ip;                 
 }
 
-void account_record_login_failure(account_t *acc, ip4_addr_t ip) {
+void account_record_login_failure(account_t *acc) {
     if (acc == NULL) {
-        log_message(LOG_WARNING, "Tried to record login failure on a NULL account.");
+        log_message(LOG_ERROR, "Tried to record login failure on a NULL account.");
         return;
     }
     acc->login_fail_count++;                
     acc->login_count = 0;                    
     acc->last_login_time = time(NULL);       
-    acc->last_login_ip = ip;                 
+                  
 }
 
 bool account_is_banned(const account_t *acc) {
     if (acc == NULL) {
-      log_message(LOG_WARNING, "Tried to check ban status on a NULL account.");
+      log_message(LOG_ERROR, "Tried to check ban status on a NULL account.");
       return false;
     }
     time_t now = time(NULL);
@@ -149,7 +150,7 @@ bool account_is_banned(const account_t *acc) {
 
 bool account_is_expired(const account_t *acc) {
     if (acc == NULL) {
-        log_message(LOG_WARNING, "Tried to check expiration on a NULL account.");
+        log_message(LOG_ERROR, "Tried to check expiration on a NULL account.");
         return false;
     }
     time_t now = time(NULL);
