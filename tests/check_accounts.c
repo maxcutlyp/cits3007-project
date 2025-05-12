@@ -132,7 +132,7 @@ START_TEST(test_record_login_success_updates_fields) {
     ck_assert_int_eq(acc.login_fail_count, 0);
     ck_assert_int_ge(acc.last_login_time, before);
     ck_assert_int_le(acc.last_login_time, after);
-    ck_assert_int_eq(acc.last_login_ip, dummy_ip);
+    ck_assert_int_eq(acc.last_ip, dummy_ip);
 }
 END_TEST
 
@@ -226,7 +226,6 @@ Suite *account_suite(void) {
 
     return s;
 }
-
 
 int main(void) {
     Suite *s = account_suite();
