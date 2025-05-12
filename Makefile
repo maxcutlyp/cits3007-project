@@ -8,6 +8,7 @@
 # (can be overridden from command-line)
 
 CC = gcc
+CLANG_TIDY = clang-tidy
 
 SRC_DIR := src
 BUILD_DIR := build
@@ -89,6 +90,11 @@ $(TEST_TARGET): $(TEST_FILES) $(TEST_SRC_FILES)
 clean:
 	rm -rf $(BUILD_DIR) $(TARGET)
 	rm -f $(TEST_TARGET)
+
+tidy:
+	@$(foreach src, $(SRC_FILES), \
+		echo "Running clang-tidy on $(src)"; \
+		$(CLANG_TIDY) $(src) -- $(CFLAGS) -Wno-unknown-warning-option || exit $$?; )
 
 .PHONY: all clean
 
