@@ -56,7 +56,7 @@ account_t *account_create(const char *userid, const char *plaintext_password,
     
     // Copy exactly BIRTHDATE_LENGTH characters from birthdate
     // This will handle the case if birthdate has extra characters like \n
-    memcpy(acc->birthdate, birthdate, BIRTHDATE_LENGTH);
+    memcpy(acc->birthdate, birthdate, sizeof acc->birthdate);
     
     // Set default values
     acc->login_fail_count = 0;
@@ -85,6 +85,11 @@ void account_free(account_t *acc) {
 
 bool account_validate_password(const account_t *acc, const char *plaintext_password) {
   struct crypt_data data = {0};
+
+  if (strlen(plaintext_password) >= sizeof data.input) {
+      log_message(LOG_ERROR, "account_validate_password: plaintext_password is too big to be processed by libcrypt.");
+      return false;
+  }
 
   static_assert(sizeof acc->password_hash <= sizeof data.setting, "Password hash is too big to be processed by libcrypt.");
   memcpy(data.setting, acc->password_hash, sizeof acc->password_hash);
@@ -142,7 +147,13 @@ bool _get_hash(struct crypt_data *data, size_t max_hash_length) {
 
 bool account_update_password(account_t *acc, const char *new_plaintext_password) {
   struct crypt_data data = {0};
-  strncpy(data.input, new_plaintext_password, CRYPT_MAX_PASSPHRASE_SIZE);
+
+  if (strlen(new_plaintext_password) >= sizeof data.input) {
+      log_message(LOG_ERROR, "account_update_password: new_plaintext_password is too big to be processed by libcrypt.");
+      return false;
+  }
+
+  strncpy(data.input, new_plaintext_password, sizeof data.input);
 
   bool success = _get_hash(&data, HASH_LENGTH);
   if (!success) {
@@ -151,7 +162,7 @@ bool account_update_password(account_t *acc, const char *new_plaintext_password)
   }
 
   // _get_hash() guarantees that strlen(data.output) < HASH_LENGTH
-  memcpy(acc->password_hash, data.output, HASH_LENGTH);
+  memcpy(acc->password_hash, data.output, sizeof acc->password_hash);
 
   return true;
 }
@@ -238,7 +249,7 @@ void account_set_email(account_t *acc, const char *new_email) {
       }
   }
 
-  strncpy(acc->email, new_email, EMAIL_LENGTH - 1);
+  strncpy(acc->email, new_email, (sizeof acc->email) - 1);
   acc->email[EMAIL_LENGTH - 1] = '\0'; 
 }
 
@@ -254,13 +265,18 @@ bool account_print_summary(const account_t *acct, int fd) {
   char unban_time_str[26];
   char expire_time_str[26];
 
-  strncpy(login_time_str, ctime(&acct->last_login_time), sizeof(login_time_str));
-  strncpy(unban_time_str, ctime(&acct->unban_time), sizeof(unban_time_str));
-  strncpy(expire_time_str, ctime(&acct->expiration_time), sizeof(expire_time_str));
-
-  login_time_str[sizeof(login_time_str) - 1] = '\0';
-  unban_time_str[sizeof(unban_time_str) - 1] = '\0';
-  expire_time_str[sizeof(expire_time_str) - 1] = '\0';
+  char *ct;
+#define SAFE_STRNCPY_CTIME(dest, src) do { \
+  if ((ct = ctime(&(src))) == NULL) { \
+    log_message(LOG_ERROR, "Couldn't convert " #src " to ctime."); \
+    return false; \
+  } \
+  strncpy(dest, ct, sizeof(dest)); \
+  dest[sizeof(dest) - 1] = '\0'; \
+} while (0)
+  SAFE_STRNCPY_CTIME(login_time_str, acct->last_login_time);
+  SAFE_STRNCPY_CTIME(unban_time_str, acct->unban_time);
+  SAFE_STRNCPY_CTIME(expire_time_str, acct->expiration_time);
 
   len = snprintf(buffer, sizeof(buffer), // prints out the summary of the account
       "User ID: %s\n"
