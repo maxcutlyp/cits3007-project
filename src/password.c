@@ -1,4 +1,5 @@
 #include "password.h"
+#include "logging.h"
 #include <stdbool.h>
 #include <assert.h>
 #include <crypt.h>
@@ -6,8 +7,7 @@
 
 /**
  * Tries to call crypt_gensalt() and crypt_r() with some known hash algorithms.
- * If none of the known algorithms work, allows libcrypt to choose an algorithm
- * (and a "low default cost" value for "count").
+ * If none of the known algorithms work, logs an error message and returns false.
  * Ensures that the hash outputted has length < max_hash_length, otherwise fails.
  * On success, hash will be available in data->output. (On failure, the values
  * in `data` are undefined).
@@ -39,11 +39,9 @@ bool _get_hash(struct crypt_data *data, size_t max_hash_length) {
   TRY_HASH("$2b$", HASH_COUNT_BCRYPT);  // should be 60 chars
   TRY_HASH("$6$", HASH_COUNT_SHA512);   // should be <=123 chars
 
-#if CRYPT_GENSALT_IMPLEMENTS_DEFAULT_PREFIX
-  TRY_HASH(NULL, 0); // will select a "low default cost"
-#endif
-
 #undef TRY_HASH
+
+  log_message(LOG_ERROR, "None of the available hashing algorithms are supported.");
 
   return false;
 }
