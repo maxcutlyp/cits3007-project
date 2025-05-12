@@ -9,6 +9,7 @@
 
 CC = gcc
 CLANG_TIDY = clang-tidy
+FLAWFINDER = flawfinder
 
 SRC_DIR := src
 BUILD_DIR := build
@@ -95,6 +96,9 @@ tidy:
 	@$(foreach src, $(SRC_FILES), \
 		echo "Running clang-tidy on $(src)"; \
 		$(CLANG_TIDY) $(src) -- $(CFLAGS) -Wno-unknown-warning-option || exit $$?; )
+
+flawfinder:
+	$(FLAWFINDER) $(SRC_FILES)
 
 .PHONY: all clean
 
