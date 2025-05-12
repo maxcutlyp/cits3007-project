@@ -116,7 +116,7 @@ void account_record_login_success(account_t *acc, ip4_addr_t ip) {
     }
     acc->login_fail_count = 0;               
     acc->last_login_time = time(NULL);       
-    acc->last_login_ip = ip;                 
+    acc->last_ip = ip;                 
 }
 
 void account_record_login_failure(account_t *acc) {
