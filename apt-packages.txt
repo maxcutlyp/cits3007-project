@@ -2,3 +2,4 @@
 # to be installed below, one package per line
 check
 libcrypt1
+flawfinder
