@@ -10,6 +10,7 @@ START_TEST (test_password_success) {
     account_t *acc = malloc(sizeof(account_t));
     bool res = account_update_password(acc, "test password");
     ck_assert_int_eq(res, true);
+    free(acc);
 }
 END_TEST
 
@@ -18,6 +19,7 @@ START_TEST (test_password_length) {
     bool res = account_update_password(acc, "test password");
     ck_assert_int_eq(res, true);
     ck_assert_int_lt(strnlen(acc->password_hash, HASH_LENGTH), HASH_LENGTH);
+    free(acc);
 }
 END_TEST
 
@@ -28,6 +30,8 @@ START_TEST (test_password_validation) {
 
     ck_assert_int_eq(account_validate_password(acc, "test password"), true);
     ck_assert_int_eq(account_validate_password(acc, "different password"), false);
+
+    free(acc);
 }
 END_TEST
 
