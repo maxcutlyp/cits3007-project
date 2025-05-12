@@ -17,119 +17,6 @@
 #define HASH_COUNT_SHA512 1000000   // 1000..999,999,999
 
 /**
- * Secure wrapper for memset - zeroes memory with bounds checking
- * Implements the functionality without using memset directly
- */
-static void secure_memset(void *ptr, size_t max_size, int value, size_t num) {
-    if (!ptr || num > max_size) return;
-    
-    // Manual byte-by-byte implementation to avoid using memset
-    unsigned char *p = (unsigned char *)ptr;
-    for (size_t i = 0; i < num; i++) {
-        p[i] = (unsigned char)value;
-    }
-}
-
-/**
- * Secure wrapper for strncpy - ensures null termination
- * Implements the functionality without using strncpy directly
- */
-static void secure_strncpy(char *dst, size_t dst_size, const char *src, size_t count) {
-    if (!dst || !src || dst_size == 0) return;
-    
-    size_t copy_size = count < dst_size - 1 ? count : dst_size - 1;
-    size_t i;
-    
-    // Manual character-by-character copy to avoid using strncpy
-    for (i = 0; i < copy_size && src[i] != '\0'; i++) {
-        dst[i] = src[i];
-    }
-    
-    // Null terminate the destination string
-    dst[i] = '\0';
-}
-
-/**
- * Secure wrapper for memcpy - adds bounds checking
- * Implements the functionality without using memcpy directly
- */
-static void secure_memcpy(void *dst, size_t dst_size, const void *src, size_t count) {
-    if (!dst || !src || count > dst_size) return;
-    
-    // Manual byte-by-byte implementation to avoid using memcpy
-    unsigned char *d = (unsigned char *)dst;
-    const unsigned char *s = (const unsigned char *)src;
-    
-    for (size_t i = 0; i < count; i++) {
-        d[i] = s[i];
-    }
-}
-
-/**
- * Secure string concatenation - appends src to dst with bounds checking
- */
-static void secure_strcat(char *dst, size_t dst_size, const char *src) {
-    if (!dst || !src || dst_size == 0) return;
-    
-    // Find end of destination string
-    size_t dst_len = 0;
-    while (dst_len < dst_size && dst[dst_len] != '\0') {
-        dst_len++;
-    }
-    
-    // Check if there's room for at least one character
-    if (dst_len >= dst_size - 1) return;
-    
-    // Copy source string, ensuring null termination
-    size_t i = 0;
-    while (dst_len + i < dst_size - 1 && src[i] != '\0') {
-        dst[dst_len + i] = src[i];
-        i++;
-    }
-    
-    dst[dst_len + i] = '\0';
-}
-
-/**
- * Convert unsigned integer to string and append to buffer
- */
-static void append_uint(char *dst, size_t dst_size, unsigned int value) {
-    if (!dst || dst_size == 0) return;
-    
-    // Find current length
-    size_t len = 0;
-    while (len < dst_size && dst[len] != '\0') {
-        len++;
-    }
-    
-    // Check if we have room
-    if (len >= dst_size - 1) return;
-    
-    // Handle special case of zero
-    if (value == 0) {
-        dst[len++] = '0';
-        dst[len] = '\0';
-        return;
-    }
-    
-    // Convert number to string backwards
-    char buffer[20]; // Large enough for 64-bit integers
-    int idx = 0;
-    
-    while (value > 0 && idx < 19) {
-        buffer[idx++] = '0' + (value % 10);
-        value /= 10;
-    }
-    
-    // Reverse and append
-    while (idx > 0 && len < dst_size - 1) {
-        dst[len++] = buffer[--idx];
-    }
-    
-    dst[len] = '\0';
-}
-
-/**
  * Create a new account with the specified parameters.
  *
  * This function initializes a new dynamically allocated account structure
@@ -159,15 +46,17 @@ account_t *account_create(const char *userid, const char *plaintext_password,
         log_message(LOG_ERROR, "account_create: Failed to allocate memory for account.");
         return NULL;
     }
-    secure_memset(acc, sizeof(account_t), 0, sizeof(account_t));
+    memset(acc, 0, sizeof(account_t));
     
     // Copy user ID and email with null termination
-    secure_strncpy(acc->userid, sizeof(acc->userid), userid, sizeof(acc->userid) - 1);
-    secure_strncpy(acc->email, sizeof(acc->email), email, sizeof(acc->email) - 1);
+    strncpy(acc->userid, userid, sizeof(acc->userid) - 1);
+    acc->userid[sizeof(acc->userid) - 1] = '\0';
+    strncpy(acc->email, email, sizeof(acc->email) - 1);
+    acc->email[sizeof(acc->email) - 1] = '\0';
     
     // Copy exactly BIRTHDATE_LENGTH characters from birthdate
     // This will handle the case if birthdate has extra characters like \n
-    secure_memcpy(acc->birthdate, sizeof(acc->birthdate), birthdate, BIRTHDATE_LENGTH);
+    memcpy(acc->birthdate, birthdate, BIRTHDATE_LENGTH);
     
     // Set default values
     acc->login_fail_count = 0;
@@ -186,26 +75,25 @@ account_t *account_create(const char *userid, const char *plaintext_password,
 
 
 void account_free(account_t *acc) {
+  // remove the contents of this function and replace it with your own code.
     if (!acc) return;
 
-    secure_memset(acc, sizeof(account_t), 0, sizeof(account_t));
+    memset(acc, 0, sizeof(account_t));
     free(acc);
 }
 
 
 bool account_validate_password(const account_t *acc, const char *plaintext_password) {
-    if (!acc || !plaintext_password) return false;
-    
-    struct crypt_data data = {0};
+  struct crypt_data data = {0};
 
-    static_assert(sizeof acc->password_hash <= sizeof data.setting, "Password hash is too big to be processed by libcrypt.");
-    secure_memcpy(data.setting, sizeof(data.setting), acc->password_hash, sizeof(acc->password_hash));
-    secure_strncpy(data.input, sizeof(data.input), plaintext_password, sizeof(data.input) - 1);
+  static_assert(sizeof acc->password_hash <= sizeof data.setting, "Password hash is too big to be processed by libcrypt.");
+  memcpy(data.setting, acc->password_hash, sizeof acc->password_hash);
+  strncpy(data.input, plaintext_password, sizeof data.input);
 
-    char *out_hash = crypt_r(data.input, data.setting, &data);
-    if (out_hash == NULL) return false;
+  char *out_hash = crypt_r(data.input, data.setting, &data);
+  if (out_hash == NULL) return false;
 
-    return strncmp(out_hash, acc->password_hash, sizeof acc->password_hash) == 0;
+  return strncmp(out_hash, acc->password_hash, sizeof acc->password_hash) == 0;
 }
 
 /**
@@ -253,21 +141,19 @@ bool _get_hash(struct crypt_data *data, size_t max_hash_length) {
 }
 
 bool account_update_password(account_t *acc, const char *new_plaintext_password) {
-    if (!acc || !new_plaintext_password) return false;
-    
-    struct crypt_data data = {0};
-    secure_strncpy(data.input, sizeof(data.input), new_plaintext_password, CRYPT_MAX_PASSPHRASE_SIZE);
+  struct crypt_data data = {0};
+  strncpy(data.input, new_plaintext_password, CRYPT_MAX_PASSPHRASE_SIZE);
 
-    bool success = _get_hash(&data, HASH_LENGTH);
-    if (!success) {
-        log_message(LOG_ERROR, "Couldn't hash a password.");
-        return false;
-    }
+  bool success = _get_hash(&data, HASH_LENGTH);
+  if (!success) {
+    log_message(LOG_ERROR, "Couldn't hash a password.");
+    return false;
+  }
 
-    // _get_hash() guarantees that strlen(data.output) < HASH_LENGTH
-    secure_memcpy(acc->password_hash, sizeof(acc->password_hash), data.output, HASH_LENGTH);
+  // _get_hash() guarantees that strlen(data.output) < HASH_LENGTH
+  memcpy(acc->password_hash, data.output, HASH_LENGTH);
 
-    return true;
+  return true;
 }
 
 void account_record_login_success(account_t *acc, ip4_addr_t ip) {
@@ -307,6 +193,7 @@ bool account_is_banned(const account_t *acc) {
     }
     return false;
 }
+
 
 bool account_is_expired(const account_t *acc) {
     if (acc == NULL) {
@@ -351,7 +238,8 @@ void account_set_email(account_t *acc, const char *new_email) {
       }
   }
 
-  secure_strncpy(acc->email, sizeof(acc->email), new_email, EMAIL_LENGTH - 1);
+  strncpy(acc->email, new_email, EMAIL_LENGTH - 1);
+  acc->email[EMAIL_LENGTH - 1] = '\0'; 
 }
 
 bool account_print_summary(const account_t *acct, int fd) {
@@ -366,51 +254,38 @@ bool account_print_summary(const account_t *acct, int fd) {
   char unban_time_str[26];
   char expire_time_str[26];
 
-  const char *login_time = ctime(&acct->last_login_time);
-  const char *unban_time = ctime(&acct->unban_time);
-  const char *expire_time = ctime(&acct->expiration_time);
-  
-  // Safely copy time strings
-  secure_strncpy(login_time_str, sizeof(login_time_str), 
-                login_time ? login_time : "", sizeof(login_time_str) - 1);
-  secure_strncpy(unban_time_str, sizeof(unban_time_str), 
-                unban_time ? unban_time : "", sizeof(unban_time_str) - 1);
-  secure_strncpy(expire_time_str, sizeof(expire_time_str), 
-                expire_time ? expire_time : "", sizeof(expire_time_str) - 1);
+  strncpy(login_time_str, ctime(&acct->last_login_time), sizeof(login_time_str));
+  strncpy(unban_time_str, ctime(&acct->unban_time), sizeof(unban_time_str));
+  strncpy(expire_time_str, ctime(&acct->expiration_time), sizeof(expire_time_str));
 
-  // Build output string manually to avoid using snprintf
-  buffer[0] = '\0'; // Start with empty string
-  
-  secure_strcat(buffer, sizeof(buffer), "User ID: ");
-  secure_strcat(buffer, sizeof(buffer), acct->userid);
-  secure_strcat(buffer, sizeof(buffer), "\nEmail: ");
-  secure_strcat(buffer, sizeof(buffer), acct->email);
-  secure_strcat(buffer, sizeof(buffer), "\nLogin Count: ");
-  append_uint(buffer, sizeof(buffer), acct->login_count);
-  secure_strcat(buffer, sizeof(buffer), "\nLogin Fail Count: ");
-  append_uint(buffer, sizeof(buffer), acct->login_fail_count);
-  secure_strcat(buffer, sizeof(buffer), "\nLast Login Time: ");
-  secure_strcat(buffer, sizeof(buffer), login_time_str);
-  secure_strcat(buffer, sizeof(buffer), "Last IP: ");
-  
-  // Format IP address
-  char ip_part[4];
-  for (int i = 0; i < 4; i++) {
-      unsigned char octet = (acct->last_ip >> (24 - i * 8)) & 0xFF;
-      ip_part[0] = '\0';
-      append_uint(ip_part, sizeof(ip_part), octet);
-      secure_strcat(buffer, sizeof(buffer), ip_part);
-      if (i < 3) {
-          secure_strcat(buffer, sizeof(buffer), ".");
-      }
+  login_time_str[sizeof(login_time_str) - 1] = '\0';
+  unban_time_str[sizeof(unban_time_str) - 1] = '\0';
+  expire_time_str[sizeof(expire_time_str) - 1] = '\0';
+
+  len = snprintf(buffer, sizeof(buffer), // prints out the summary of the account
+      "User ID: %s\n"
+      "Email: %s\n"
+      "Login Count: %u\n"
+      "Login Fail Count: %u\n"
+      "Last Login Time: %s"
+      "Last IP: %u.%u.%u.%u\n"
+      "Unban Time: %s"
+      "Expiration Time: %s",
+      acct->userid,
+      acct->email,
+      acct->login_count,
+      acct->login_fail_count,
+      login_time_str,
+      (acct->last_ip >> 24) & 0xFF,
+      (acct->last_ip >> 16) & 0xFF,
+      (acct->last_ip >> 8) & 0xFF,
+      acct->last_ip & 0xFF,
+      unban_time_str,
+      expire_time_str
+  );
+
+  if (len < 0) {
+    return false;
   }
-  
-  secure_strcat(buffer, sizeof(buffer), "\nUnban Time: ");
-  secure_strcat(buffer, sizeof(buffer), unban_time_str);
-  secure_strcat(buffer, sizeof(buffer), "Expiration Time: ");
-  secure_strcat(buffer, sizeof(buffer), expire_time_str);
-  
-  len = strlen(buffer);
-
   return write(fd, buffer, len) == len;
 }
