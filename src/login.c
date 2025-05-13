@@ -7,6 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+#include <limits.h>
 
 login_result_t handle_login(
     const char *userid,
@@ -56,7 +57,17 @@ login_result_t handle_login(
 
     account_record_login_success(&acc, client_ip);
 
-    session->account_id = acc.account_id;
+    // Unfortunately, since we can't change the data types in the headers,
+    // we just have to accept and deal with the fact that an account_t's
+    // account_id might not fit in a login_session_data_t.
+    if (acc.account_id > INT_MAX) {
+        log_message(LOG_ERROR, "Invalid account ID for user '%s'", userid);
+        dprintf(client_output_fd, "Login failed: invalid account ID\n");
+        dprintf(log_fd, "Invalid account ID for user '%s'\n", userid);
+        return LOGIN_FAIL_INTERNAL_ERROR;
+    }
+
+    session->account_id = (int)acc.account_id; // this is now safe after checking
     session->session_start = login_time;
     session->expiration_time = login_time + 3600; // 1 hour session
 

@@ -18,7 +18,7 @@ START_TEST (test_password_length) {
     account_t *acc = malloc(sizeof(account_t));
     bool res = account_update_password(acc, "test password");
     ck_assert_int_eq(res, true);
-    ck_assert_int_lt(strnlen(acc->password_hash, HASH_LENGTH), HASH_LENGTH);
+    ck_assert_uint_lt(strnlen(acc->password_hash, HASH_LENGTH), HASH_LENGTH);
     free(acc);
 }
 END_TEST

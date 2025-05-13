@@ -61,7 +61,10 @@ PKG_LDFLAGS := $(if $(strip $(PKG_DEPS)),$(shell pkg-config --libs $(PKG_DEPS)))
 # not necessarily use the same flags when testing your code.
 DEBUG = -g -fno-omit-frame-pointer
 SANFLAGS = -fsanitize=undefined,address
-CFLAGS = $(DEBUG) -std=c11 -pedantic-errors -Wall -Wextra $(INC_FLAGS) $(PKG_CFLAGS)
+EXTRA_CFLAGS = -pedantic-errors -Werror=implicit-function-declaration -Werror=vla  -Wconversion \
+	-fno-common -Wstrict-aliasing -Werror=strict-aliasing -Wformat=2 -Werror=format \
+	-Wreturn-type -Werror=return-type
+CFLAGS = $(DEBUG) $(EXTRA_CFLAGS) -std=c11 -pedantic-errors -Wall -Wextra $(INC_FLAGS) $(PKG_CFLAGS)
 LDFLAGS = $(PKG_LDFLAGS)
 
 ###
