@@ -25,6 +25,7 @@ int _real_main(int argc, char **argv) {
   char *birthdate = argv[4];
 
   account_t *acc = account_create(userid, password, email, birthdate);
+  if (!acc) return false;
   if (!account_validate_password(acc, password)) abort(); // trigger a crash to trip the fuzzer; this should never be false
 
   char *new_password = argv[5];
