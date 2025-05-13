@@ -1,10 +1,19 @@
+// afl-fuzz doesn't natively support fuzzing argv; instead, we have a
+// wrapper entrypoint that transforms a given input file into argv.
+
+#define _GNU_SOURCE
 #include "logging.h"
 #include "account.h"
 #include "login.h"
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdio.h>
+#include <string.h>
 
-int main(int argc, char **argv) {
+#define MAX_ARGS 128
+#define MAX_LINE 4096
+
+int _real_main(int argc, char **argv) {
   if (argc < 7) {
     log_message(LOG_ERROR, "Not enough arguments");
     return 1;
@@ -32,4 +41,44 @@ int main(int argc, char **argv) {
   account_free(acc);
 
   return 0;
+}
+
+int main(int argc, char *argv[]) {
+  if (argc != 2) {
+    fprintf(stderr, "Usage: %s input_file\n", argv[0]);
+    return 1;
+  }
+
+  FILE *f = fopen(argv[1], "r");
+  if (!f) {
+    perror("fopen");
+    return 1;
+  }
+
+  char line[MAX_LINE];
+  if (!fgets(line, sizeof(line), f)) {
+    perror("fgets");
+    fclose(f);
+    return 1;
+  }
+  fclose(f);
+
+  // Tokenize line on whitespace
+  char *args[MAX_ARGS];
+  int i = 0;
+  args[i++] = argv[0]; // set argv[0]
+
+  char *token = strtok(line, " \t\r\n");
+  while (token && i < MAX_ARGS - 1) {
+    args[i++] = token;
+    token = strtok(NULL, " \t\r\n");
+  }
+  args[i] = NULL;
+
+  if (i == 0) {
+    fprintf(stderr, "No arguments provided in file.\n");
+    return 1;
+  }
+
+  return _real_main(i, args);
 }

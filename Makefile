@@ -109,11 +109,11 @@ flawfinder:
 	$(FLAWFINDER) $(SRC_FILES)
 
 fuzz: $(FUZZ_TARGET)
-	$(AFL_FUZZ) -d -i $(FUZZ_INPUT_DIR) -o $(FUZZ_OUTPUT_DIR) -- ./$(FUZZ_TARGET)
+	$(AFL_FUZZ) -d -i $(FUZZ_INPUT_DIR) -o $(FUZZ_OUTPUT_DIR) -- $(FUZZ_TARGET) @@
 
 $(FUZZ_TARGET): $(FUZZ_FILES) $(FUZZ_MAIN)
 	@mkdir -p $(BIN_DIR)
-	$(AFL_CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	$(AFL_CC) -O2 $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 .PHONY: all clean
 
